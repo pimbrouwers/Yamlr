@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Yamlr</AssemblyName>
+    <Version>1.0.0</Version>
+    
+    <!-- General info -->
+    <Description>YAML Serializer and Abstract Syntax Tree for F#.</Description>
+    <Copyright>Copyright Pim Brouwers</Copyright>
+    <Authors>Pim Brouwers</Authors>
+    <NeutralLanguage>en-CA</NeutralLanguage>
+
+    <!-- Build config -->
+    <DebugType>portable</DebugType>
+    <OutputType>Library</OutputType>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TargetFramework>netstandard2.0</TargetFramework>
+
+    <!-- NuGet config -->
+    <PackageId>Yamlr</PackageId>
+    <PackageVersion>1.0.0-beta1</PackageVersion>
+    <PackageTags>fsharp;yaml;ast;serializer</PackageTags>
+    <PackageProjectUrl>https://github.com/pimbrouwers/Yamlr</PackageProjectUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/pimbrouwers/Yamlr</RepositoryUrl>
+
+    <!-- SourceLink settings -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.5.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Yamlr.fs" />
+  </ItemGroup>
+
+</Project>
