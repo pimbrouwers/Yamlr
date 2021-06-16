@@ -3,15 +3,15 @@
 [![NuGet Version](https://img.shields.io/nuget/v/Yamlr.svg)](https://www.nuget.org/packages/Yamlr)
 [![Build Status](https://travis-ci.org/pimbrouwers/Yamlr.svg?branch=main)](https://travis-ci.org/pimbrouwers/Yamlr)
 
-~description~
+_description_
 
 ## Key Features
 
-- ~features~
+- _features_
 
 ## Getting Started
 
-~getting started~
+_getting started_
 
 ## Find a bug?
 
