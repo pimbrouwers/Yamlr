@@ -11,37 +11,71 @@ type Yaml =
     | Float   of float            
     | List    of elements : Yaml array
     | Mapping of scalars : (string * Yaml) array
+   
+module Yaml =    
+    [<Literal>] 
+    let private tabChar = ' '
 
-    member this.WriteTo (w : TextWriter) = 
-        let rec serialize indent yaml =             
-            let tab = new String(' ', indent)
+    [<Literal>]
+    let private quoteChar = '''
+
+    [<Literal>]
+    let private listStr = '-'
+
+    [<Literal>]
+    let private scalarStr = ':'
+
+    [<Literal>]
+    let private trueStr = "true"
+
+    [<Literal>]
+    let private falseStr = "false"
+
+    let serialize (yaml : Yaml) = 
+        let w = new StringWriter(Globalization.CultureInfo.InvariantCulture)
+
+        let newLine () = w.WriteLine ()
+
+        let rec serializeYaml indent yaml =             
+            let tab = new String(tabChar, indent)
 
             match yaml with
             | Null           -> w.Write String.Empty
-            | Bool b         -> w.Write (if b then "true" else "false")
-            | String s       -> w.Write("'{0}'", s)
-            | Number n       -> w.Write(n)
-            | Float f        -> w.Write(f)
-            | List elements  ->                 
+            | Bool b         -> w.Write (if b then trueStr else falseStr)
+            | Number n       -> w.Write n
+            | Float f        -> w.Write f
+            | String s       -> 
+                w.Write quoteChar
+                w.Write s
+                w.Write quoteChar
+
+            | List elements  -> 
                 for i = 0 to elements.Length - 1 do
-                    if i > 0 || indent > 0 then w.WriteLine()
-                    w.Write(tab)
-                    w.Write("- ")
-                    serialize indent elements.[i]
+                    if i > 0 || indent > 0 then newLine ()
+
+                    if tab.Length > 0 then w.Write tab
+
+                    w.Write listStr
+                    w.Write tabChar
+
+                    serializeYaml indent elements.[i]
+
             | Mapping scalars ->
-                for i = 0 to scalars.Length - 1 do
+                for i = 0 to scalars.Length - 1 do                    
+                    if i > 0 || indent > 0 then newLine ()
+                    
+                    if tab.Length > 0 then w.Write tab
+
                     let (k, v) = scalars.[i]
-                    if i > 0 || indent > 0 then w.WriteLine()
-                    w.Write("{0}{1}: ", tab, k)
+                    
+                    w.Write k
+                    w.Write scalarStr
+                    w.Write tabChar
+                    
                     let indent = indent + 4
-                    serialize indent v                    
+                    
+                    serializeYaml indent v                    
 
-        serialize 0 this
+        serializeYaml 0 yaml
 
-    override this.ToString() =
-        let w = new StringWriter(Globalization.CultureInfo.InvariantCulture)
-        this.WriteTo(w)
         w.GetStringBuilder().ToString()
-
-module Yaml =    
-    let serialize (yaml : Yaml) = yaml.ToString()
