@@ -116,14 +116,13 @@ type internal YamlDeserializer (rd : StreamReader) =
             else s.Substring(1, s.Length - 2)
 
         match c with
-        | Char.MinValue            -> YamlNull
-        | '-'                      -> parseNum str
-        | c when Char.IsDigit(c)   -> parseNum str
-        | 't' when isTrueBool str  -> YamlBool true
-        | 'f' when isFalseBool str -> YamlBool false        
-        | QuoteChar
-        | DoubleQuoteChar          -> YamlString (parseString str)
-        | _                        -> YamlString str
+        | Char.MinValue               -> YamlNull
+        | '-'                         -> parseNum str
+        | c when Char.IsDigit(c)      -> parseNum str
+        | _ when isTrueBool str       -> YamlBool true
+        | _ when isFalseBool str      -> YamlBool false        
+        | QuoteChar | DoubleQuoteChar -> YamlString (parseString str)
+        | _                           -> YamlString str
 
     let parsePairing (str : string) : string * Yaml =        
         let str = str.Trim ()
