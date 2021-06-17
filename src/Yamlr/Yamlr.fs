@@ -80,10 +80,30 @@ type internal YamlDeserializer (rd : StreamReader) =
     let getInlineContent (sep : char array) (line : string) : string array = 
         if line.Length < 2 then [||]
         else 
+            // strip enclosing chars (i.e., '[]' or '{}')
             line.Substring(1, line.Length - 2).Trim().Split(sep)
 
     let parseScalar (str : string) : Yaml =
-        let parseNum s = 
+        let str = str.Trim ()
+        let c = if str.Length = 0 then Char.MinValue else str.[0]
+
+        let isTrueBool (s : string) = 
+            match s with 
+            | "true" | "True" | "TRUE" 
+            | "yes" | "Yes" | "YES"
+            | "on" | "On" | "ON"
+            | "y" | "Y" -> true
+            | _ -> false
+
+        let isFalseBool (s : string) = 
+            match s with 
+            | "false" | "False" | "FALSE" 
+            | "no" | "No" | "NO"
+            | "off" | "Off" | "OFF"
+            | "N" | "N" -> true
+            | _ -> false
+
+        let parseNum (s : string) = 
             match StringParser.parseDecimal CultureInfo.InvariantCulture s with
             | Some d -> YamlNumber d
             | None   -> 
@@ -91,26 +111,25 @@ type internal YamlDeserializer (rd : StreamReader) =
                 | Some f -> YamlFloat f
                 | None   -> failwithf "Encountered invalid scalar: %s" s
 
-        let parseString (str : string) =
-            if str.Length < 2 then NullChar
-            else str.Substring(1, str.Length - 2)
-
-        let str = str.Trim ()
-        let c = if str.Length = 0 then Char.MinValue else str.[0]
+        let parseString (s : string) =
+            if s.Length < 2 then NullChar
+            else s.Substring(1, s.Length - 2)
 
         match c with
-        | Char.MinValue -> YamlNull
-        | '-' -> parseNum str
-        | c when Char.IsDigit(c) -> parseNum str
-        | 't' when str = "true" -> YamlBool true
-        | 'f' when str = "false" -> YamlBool false        
+        | Char.MinValue            -> YamlNull
+        | '-'                      -> parseNum str
+        | c when Char.IsDigit(c)   -> parseNum str
+        | 't' when isTrueBool str  -> YamlBool true
+        | 'f' when isFalseBool str -> YamlBool false        
         | QuoteChar
-        | DoubleQuoteChar -> YamlString (parseString str)
-        | _ -> YamlString str
+        | DoubleQuoteChar          -> YamlString (parseString str)
+        | _                        -> YamlString str
 
     let parsePairing (str : string) : string * Yaml =        
         let str = str.Trim ()
+        let c = if str.Length = 0 then Char.MinValue else str.[0]
         
+        // walk string until we fine the ':' key/value separator
         let rec locateQuotedKeyTerminator (delimiter : char) (i: int) (str : string) =
             let strLen = str.Length
             let twoBack = if i > 1 then str.[i-2] else Char.MinValue
@@ -122,7 +141,7 @@ type internal YamlDeserializer (rd : StreamReader) =
             else locateQuotedKeyTerminator delimiter (i + 1) str
             
         let isDelimited, colonIndex =             
-            match str.[0] with
+            match c with
             | QuoteChar       -> true, locateQuotedKeyTerminator ''' 0 str
             | DoubleQuoteChar -> true, locateQuotedKeyTerminator '"' 0 str
             | ComplexKeyChar  -> false, -1                
@@ -131,10 +150,13 @@ type internal YamlDeserializer (rd : StreamReader) =
         if colonIndex = -1 then 
             failwithf "Encountered invalid key/value: %s" str
 
+        // trim leading and trailing delimiter for delimited (i.e. single- and double-quote keys)
         let startIndex = if isDelimited then 1 else 0
         let endIndex = if isDelimited then colonIndex - 2 else colonIndex
         let key = str.Substring(startIndex, endIndex)
+
         let value = parseScalar (str.Substring(colonIndex + 1))
+        
         key, value
 
     let rec parseLines (hasMore : bool) (rd : StreamReader) =         
@@ -143,6 +165,7 @@ type internal YamlDeserializer (rd : StreamReader) =
         | _          -> YamlNull
 
     and readLine (rd : StreamReader) : bool * string  =                        
+        // continue reading until we find a suitable line (i.e., non-empty and non-comment)
         if not(rd.EndOfStream) then 
             let line = (rd.ReadLine ()).Trim()
             
@@ -156,18 +179,18 @@ type internal YamlDeserializer (rd : StreamReader) =
     and parseValue (line : string) =         
         match line.[0] with
         | InlineListStartChar -> 
+            // split line into string array and parse as scalars
             getInlineContent [|','|] line
             |> Array.map parseScalar
             |> YamlList 
 
         | InlineMapStartChar -> 
+            // split line into string array and parse as key/value pairs
             getInlineContent [|','|] line
             |> Array.map parsePairing
             |> YamlMap
 
-        | ListChar ->
-            //let lineValue = line.Substring(1).Trim()
-            //parseLines lineValue            
+        | ListChar ->            
             YamlList [||]
 
         | _ -> parseScalar line
