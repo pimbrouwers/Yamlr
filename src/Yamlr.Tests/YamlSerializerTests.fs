@@ -1,4 +1,4 @@
-﻿module Yamlr.Tests
+﻿module YamlSerializer.Tests
 
 open Xunit
 open Yamlr
@@ -41,7 +41,7 @@ let ``YamlList serializes to list of serialized Yaml`` () =
     let expected = "- 'test'
 - 1.0
 - false"
-    YamlSequence [| YamlString "test"; YamlNumber 1.0M; Yaml.YamlBool false |]
+    YamlList [| YamlString "test"; YamlNumber 1.0M; Yaml.YamlBool false |]
     |> Yaml.serialize
     |> should equal expected
 
@@ -64,23 +64,23 @@ api:
         keywords: 
             - 'serializer'
             - 'f#'"
-    YamlMapping [|
+    YamlMap [|
         "name", YamlString "yamlr"
         "version", YamlNumber 1.0M
         "kind", YamlString "library"
         "beta", YamlBool false
-        "versionHistory", YamlSequence [| 
+        "versionHistory", YamlList [| 
             YamlNumber 0.1M
             YamlNumber 0.2M
             YamlNumber 0.3M
             YamlNumber 1.0M
         |]
-        "api", YamlMapping [| 
+        "api", YamlMap [| 
             "serialize", YamlString "converts yaml to string"
             "parse", YamlString "convert string to yaml" 
-            "metadata", YamlMapping [|
+            "metadata", YamlMap [|
                 "license", YamlString "apache"
-                "keywords", YamlSequence [|
+                "keywords", YamlList [|
                     YamlString "serializer"
                     YamlString "f#"
                 |]

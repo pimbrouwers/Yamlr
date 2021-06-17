@@ -8,7 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="YamlrTests.fs" />
+    <Compile Include="YamlSerializerTests.fs" />
+    <Compile Include="YamlDeserializerTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
