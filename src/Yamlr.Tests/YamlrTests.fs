@@ -5,48 +5,48 @@ open Yamlr
 open FsUnit.Xunit
 
 [<Fact>]
-let ``Yaml.Null serializes to empty string`` () =    
-    Yaml.Null |> Yaml.serialize |> should equal ""
+let ``YamlNull serializes to empty string`` () =    
+    YamlNull |> Yaml.serialize |> should equal ""
 
 [<Fact>]
-let ``Yaml.Bool serializes to boolean string`` () =    
-    Yaml.Bool false |> Yaml.serialize |> should equal "false"
+let ``YamlBool serializes to boolean string`` () =    
+    YamlBool false |> Yaml.serialize |> should equal "false"
 
 [<Fact>]
-let ``Yaml.String serializes to provided string quoted`` () =    
+let ``YamlString serializes to provided string quoted`` () =    
     let str = "yamlr"
     let quotedStr = sprintf "'%s'" str
-    str |> Yaml.String |> Yaml.serialize |> should equal quotedStr
+    str |> YamlString |> Yaml.serialize |> should equal quotedStr
 
 [<Fact>]
-let ``Yaml.Number serializes to provided number for int`` () =    
+let ``YamlNumber serializes to provided number for int`` () =    
     let num = 1
     let numStr = "1"
-    num |> decimal |> Yaml.Number |> Yaml.serialize |> should equal numStr
+    num |> decimal |> YamlNumber |> Yaml.serialize |> should equal numStr
 
 [<Fact>]
-let ``Yaml.Number serializes to provided number for decimal`` () =    
+let ``YamlNumber serializes to provided number for decimal`` () =    
     let dec = 1.1M
     let decStr = "1.1"
-    dec |> Yaml.Number |> Yaml.serialize |> should equal decStr
+    dec |> YamlNumber |> Yaml.serialize |> should equal decStr
 
 [<Fact>]
-let ``Yaml.Float serializes to provided number for float`` () =    
+let ``YamlFloat serializes to provided number for float`` () =    
     let dec = 1.1
     let decStr = "1.1"
-    dec |> Yaml.Float |> Yaml.serialize |> should equal decStr
+    dec |> YamlFloat |> Yaml.serialize |> should equal decStr
 
 [<Fact>]
-let ``Yaml.List serializes to list of serialized Yaml`` () =    
+let ``YamlList serializes to list of serialized Yaml`` () =    
     let expected = "- 'test'
 - 1.0
 - false"
-    Yaml.List [| Yaml.String "test"; Yaml.Number 1.0M; Yaml.Bool false |]
+    YamlSequence [| YamlString "test"; YamlNumber 1.0M; Yaml.YamlBool false |]
     |> Yaml.serialize
     |> should equal expected
 
 [<Fact>]
-let ``Yaml.Mapping serializes to nested serialized Yaml scalars`` () =    
+let ``YamlMapping serializes to nested serialized Yaml scalars`` () =    
     let expected = "name: 'yamlr'
 version: 1.0
 kind: 'library'
@@ -64,25 +64,25 @@ api:
         keywords: 
             - 'serializer'
             - 'f#'"
-    Yaml.Mapping [|
-        "name", Yaml.String "yamlr"
-        "version", Yaml.Number 1.0M
-        "kind", Yaml.String "library"
-        "beta", Yaml.Bool false
-        "versionHistory", Yaml.List [| 
-            Yaml.Number 0.1M
-            Yaml.Number 0.2M
-            Yaml.Number 0.3M
-            Yaml.Number 1.0M
+    YamlMapping [|
+        "name", YamlString "yamlr"
+        "version", YamlNumber 1.0M
+        "kind", YamlString "library"
+        "beta", YamlBool false
+        "versionHistory", YamlSequence [| 
+            YamlNumber 0.1M
+            YamlNumber 0.2M
+            YamlNumber 0.3M
+            YamlNumber 1.0M
         |]
-        "api", Yaml.Mapping [| 
-            "serialize", Yaml.String "converts yaml to string"
-            "parse", Yaml.String "convert string to yaml" 
-            "metadata", Yaml.Mapping [|
-                "license", Yaml.String "apache"
-                "keywords", Yaml.List [|
-                    Yaml.String "serializer"
-                    Yaml.String "f#"
+        "api", YamlMapping [| 
+            "serialize", YamlString "converts yaml to string"
+            "parse", YamlString "convert string to yaml" 
+            "metadata", YamlMapping [|
+                "license", YamlString "apache"
+                "keywords", YamlSequence [|
+                    YamlString "serializer"
+                    YamlString "f#"
                 |]
             |]
         |]

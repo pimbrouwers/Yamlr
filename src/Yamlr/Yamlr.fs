@@ -1,66 +1,79 @@
-﻿module Yamlr
+﻿namespace Yamlr
 
 open System
 open System.IO
 
 type Yaml =
-    | Null  
-    | Bool    of bool
-    | String  of string
-    | Number  of decimal
-    | Float   of float            
-    | List    of elements : Yaml array
-    | Mapping of scalars : (string * Yaml) array
-   
-module Yaml =    
+    | YamlNull  
+    | YamlBool     of bool
+    | YamlString   of string
+    | YamlNumber   of decimal
+    | YamlFloat    of float            
+    | YamlSequence of elements : Yaml array
+    | YamlMapping  of scalars : (string * Yaml) array
+
+module private Constants = 
     [<Literal>] 
-    let private tabChar = ' '
+    let TabChar = ' '
 
     [<Literal>]
-    let private quoteChar = '''
+    let TabWidth = 4
+    
+    [<Literal>]
+    let ListChar = '-'
 
     [<Literal>]
-    let private listStr = '-'
+    let NullChar = ""
 
     [<Literal>]
-    let private scalarStr = ':'
+    let QuoteChar = '''
 
     [<Literal>]
-    let private trueStr = "true"
+    let ScalarChar = ':'
 
     [<Literal>]
-    let private falseStr = "false"
+    let TrueStr = "true"
 
-    let serialize (yaml : Yaml) = 
+    [<Literal>]
+    let FalseStr = "false"
+
+open Constants
+
+module Yaml =        
+    let serialize (yaml : Yaml) : string = 
         let w = new StringWriter(Globalization.CultureInfo.InvariantCulture)
 
-        let newLine () = w.WriteLine ()
+        let increaseIndent indent = 
+            indent + TabWidth
+
+        let newLine () =
+            w.WriteLine ()
 
         let rec serializeYaml indent yaml =             
-            let tab = new String(tabChar, indent)
+            let tab = new String(TabChar, indent)
 
             match yaml with
-            | Null           -> w.Write String.Empty
-            | Bool b         -> w.Write (if b then trueStr else falseStr)
-            | Number n       -> w.Write n
-            | Float f        -> w.Write f
-            | String s       -> 
-                w.Write quoteChar
+            | YamlNull     -> w.Write NullChar
+            | YamlBool b   -> w.Write (if b then TrueStr else FalseStr)
+            | YamlNumber n -> w.Write n
+            | YamlFloat f  -> w.Write f
+            | YamlString s -> 
+                w.Write QuoteChar
                 w.Write s
-                w.Write quoteChar
+                w.Write QuoteChar
 
-            | List elements  -> 
+            | YamlSequence elements -> 
                 for i = 0 to elements.Length - 1 do
                     if i > 0 || indent > 0 then newLine ()
 
                     if tab.Length > 0 then w.Write tab
 
-                    w.Write listStr
-                    w.Write tabChar
+                    w.Write ListChar
+                    w.Write TabChar
 
                     serializeYaml indent elements.[i]
 
-            | Mapping scalars ->
+            | YamlMapping scalars ->
                 for i = 0 to scalars.Length - 1 do                    
                     if i > 0 || indent > 0 then newLine ()
                     
@@ -69,12 +82,10 @@ module Yaml =
                     let (k, v) = scalars.[i]
                     
                     w.Write k
-                    w.Write scalarStr
-                    w.Write tabChar
+                    w.Write ScalarChar
+                    w.Write TabChar
                     
-                    let indent = indent + 4
-                    
-                    serializeYaml indent v                    
+                    serializeYaml (increaseIndent indent) v                    
 
         serializeYaml 0 yaml
 
