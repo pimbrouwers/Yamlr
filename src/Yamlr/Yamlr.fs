@@ -1,7 +1,7 @@
 ﻿namespace Yamlr
 
 open System
-open System.Globalization 
+open System.Globalization
 open System.IO
 open System.Text
 
@@ -14,9 +14,30 @@ type Yaml =
     | YamlList   of elements : Yaml array
     | YamlMap    of elements : (string * Yaml) array
 
+module internal StringParser =         
+    let parseWith (tryParseFunc: string -> bool * _) = 
+        tryParseFunc >> function
+        | true, v    -> Some v
+        | false, _   -> None
+      
+    let parseInt16          cul = parseWith (fun str -> Int16.TryParse(str, NumberStyles.Currency, cul))
+    let parseInt32          cul = parseWith (fun str -> Int32.TryParse(str, NumberStyles.Currency, cul))
+    let parseInt64          cul = parseWith (fun str -> Int64.TryParse(str, NumberStyles.Currency, cul))
+    let parseInt            cul = parseInt32 cul
+    let parseFloat          cul = parseWith (fun str -> Double.TryParse(str, NumberStyles.Currency, cul))
+    let parseDecimal        cul = parseWith (fun str -> Decimal.TryParse(str, NumberStyles.Currency, cul))
+    let parseDateTime       cul = parseWith (fun str -> DateTime.TryParse(str, cul, DateTimeStyles.AllowWhiteSpaces ||| DateTimeStyles.RoundtripKind))
+    let parseDateTimeOffset cul = parseWith (fun str -> DateTimeOffset.TryParse(str, cul, DateTimeStyles.AllowWhiteSpaces ||| DateTimeStyles.RoundtripKind))
+    let parseTimeSpan       cul = parseWith (fun str-> TimeSpan.TryParse(str, cul))
+    let parseBoolean            = parseWith Boolean.TryParse
+    let parseGuid               = parseWith Guid.TryParse
+
 module internal Constants = 
     [<Literal>]
     let CommentChar = '#'
+
+    [<Literal>]
+    let ComplexKeyChar = '?'
 
     [<Literal>] 
     let TabChar = ' '
@@ -51,23 +72,7 @@ module internal Constants =
     [<Literal>]
     let FalseStr = "false"
 
-module internal StringParser =         
-    let parseWith (tryParseFunc: string -> bool * _) = 
-        tryParseFunc >> function
-        | true, v    -> Some v
-        | false, _   -> None
-      
-    //let parseInt16          cul = parseWith (fun str -> Int16.TryParse(str, NumberStyles.Currency, cul))
-    //let parseInt32          cul = parseWith (fun str -> Int32.TryParse(str, NumberStyles.Currency, cul))
-    //let parseInt64          cul = parseWith (fun str -> Int64.TryParse(str, NumberStyles.Currency, cul))
-    //let parseInt            cul = parseInt32 cul
-    let parseFloat          cul = parseWith (fun str -> Double.TryParse(str, NumberStyles.Currency, cul))
-    let parseDecimal        cul = parseWith (fun str -> Decimal.TryParse(str, NumberStyles.Currency, cul))
-    //let parseDateTime       cul = parseWith (fun str -> DateTime.TryParse(str, cul, DateTimeStyles.AllowWhiteSpaces ||| DateTimeStyles.RoundtripKind))
-    //let parseDateTimeOffset cul = parseWith (fun str -> DateTimeOffset.TryParse(str, cul, DateTimeStyles.AllowWhiteSpaces ||| DateTimeStyles.RoundtripKind))
-    //let parseTimeSpan       cul = parseWith (fun str-> TimeSpan.TryParse(str, cul))
-    //let parseBoolean            = parseWith Boolean.TryParse
-    //let parseGuid               = parseWith Guid.TryParse
+    let whitespace = (char)32
 
 open Constants
 
@@ -106,18 +111,30 @@ type internal YamlDeserializer (rd : StreamReader) =
     let parsePairing (str : string) : string * Yaml =        
         let str = str.Trim ()
         
-        let key, i = 
+        let rec locateQuotedKeyTerminator (delimiter : char) (i: int) (str : string) =
+            let strLen = str.Length
+            let twoBack = if i > 1 then str.[i-2] else Char.MinValue
+            let oneBack = if i > 0 then str.[i-1] else Char.MinValue
+            let curr = if i < strLen - 1 then str.[i] else whitespace
+            
+            if twoBack = delimiter && oneBack = ':' && Char.IsWhiteSpace curr then i - 1
+            elif i = strLen then -1
+            else locateQuotedKeyTerminator delimiter (i + 1) str
+            
+        let isDelimited, colonIndex =             
             match str.[0] with
-            | DoubleQuoteChar
-            | QuoteChar -> 
-                
-                
-                "", -1
-            | _ ->
-                let colonIndex = str.IndexOf(':')
-                str.Substring(0, colonIndex),  colonIndex
+            | QuoteChar       -> true, locateQuotedKeyTerminator ''' 0 str
+            | DoubleQuoteChar -> true, locateQuotedKeyTerminator '"' 0 str
+            | ComplexKeyChar  -> false, -1                
+            | _               -> false, str.IndexOf(':')
 
-        let value = parseScalar (str.Substring(i + 1))
+        if colonIndex = -1 then 
+            failwithf "Encountered invalid key/value: %s" str
+
+        let startIndex = if isDelimited then 1 else 0
+        let endIndex = if isDelimited then colonIndex - 2 else colonIndex
+        let key = str.Substring(startIndex, endIndex)
+        let value = parseScalar (str.Substring(colonIndex + 1))
         key, value
 
     let rec parseLines (hasMore : bool) (rd : StreamReader) =         
@@ -160,7 +177,7 @@ type internal YamlDeserializer (rd : StreamReader) =
         yaml
 
 type internal YamlSerializer (yaml : Yaml) =
-    let w = new StringWriter(Globalization.CultureInfo.InvariantCulture)
+    let w = new StringWriter(CultureInfo.InvariantCulture)
 
     let increaseIndent indent = 
         indent + TabWidth
@@ -211,10 +228,10 @@ type internal YamlSerializer (yaml : Yaml) =
 
         w.GetStringBuilder().ToString()
 
-module Yaml =      
+module Yaml =
     let private newYamlReader (yamlStream : Stream) : StreamReader = 
         new StreamReader(yamlStream, Encoding.UTF8, true, 1024)
-
+    
     let deserialize (yamlStr : String) : Yaml =
         use str = new MemoryStream()
         use w = new StreamWriter(str)
@@ -224,12 +241,12 @@ module Yaml =
         use rd = newYamlReader str
         let parser = YamlDeserializer(rd)
         parser.Deserialize ()
-
+    
     let deserializeStream (yamlStream : Stream) : Yaml =
         use rd = newYamlReader yamlStream
         let parser = YamlDeserializer(rd)
         parser.Deserialize ()
-
+    
     let serialize (yaml : Yaml) : string = 
         let serializer = YamlSerializer(yaml)
         serializer.Serialize()
