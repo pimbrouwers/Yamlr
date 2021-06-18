@@ -72,8 +72,54 @@ let ``Inline map with double-quoted keys produces YamlMap`` () =
         "issues", YamlNull
     |])
 
-//[<Fact>]
-//let ``Multiline list produces YamlList`` () =
-//    "- 'test'\r\n- 1.0\r\n- false"
-//    |> Yaml.deserialize
-//    |> should equal (YamlList [| YamlString "test"; YamlNumber 1.0M; Yaml.YamlBool false |])
+[<Fact>]
+let ``Multiline list produces YamlList`` () =
+    "- 'test
+- 1.0
+- false"
+    |> Yaml.deserialize
+    |> should equal (YamlList [| YamlString "test"; YamlNumber 1.0M; YamlBool false |])
+
+[<Fact>]
+let ``Multiline mapping produces YamlMap`` () =    
+    "name: 'yamlr'
+version: 1.0
+kind: 'library'
+beta: false
+versionHistory: 
+    - 0.1
+    - 0.2
+    - 0.3
+    - 1.0
+api: 
+    serialize: 'converts yaml to string'
+    parse: 'convert string to yaml'
+    metadata: 
+        license: 'apache'
+        keywords: 
+            - 'serializer'
+            - 'f#'"
+    |> Yaml.deserialize
+    |> should equal (YamlMap [|
+        "name", YamlString "yamlr"
+        "version", YamlNumber 1.0M
+        "kind", YamlString "library"
+        "beta", YamlBool false
+        "versionHistory", YamlList [| 
+            YamlNumber 0.1M
+            YamlNumber 0.2M
+            YamlNumber 0.3M
+            YamlNumber 1.0M
+        |]
+        "api", YamlMap [| 
+            "serialize", YamlString "converts yaml to string"
+            "parse", YamlString "convert string to yaml" 
+            "metadata", YamlMap [|
+                "license", YamlString "apache"
+                "keywords", YamlList [|
+                    YamlString "serializer"
+                    YamlString "f#"
+                |]
+            |]
+        |]
+    |])

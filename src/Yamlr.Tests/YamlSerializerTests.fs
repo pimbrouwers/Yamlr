@@ -41,7 +41,7 @@ let ``YamlList serializes to list of serialized Yaml`` () =
     let expected = "- 'test'
 - 1.0
 - false"
-    YamlList [| YamlString "test"; YamlNumber 1.0M; Yaml.YamlBool false |]
+    YamlList [| YamlString "test"; YamlNumber 1.0M; YamlBool false |]
     |> Yaml.serialize
     |> should equal expected
 

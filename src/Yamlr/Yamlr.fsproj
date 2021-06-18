@@ -37,7 +37,11 @@
     <PackageReference Update="FSharp.Core" Version="4.5.2" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Yamlr.fs" />
+    <Compile Include="YamlValue.fs" />
+    <Compile Include="StringParser.fs" />
+    <Compile Include="YamlDeserializer.fs" />
+    <Compile Include="YamlSerializer.fs" />
+    <Compile Include="Yaml.fs" />
   </ItemGroup>
 
 </Project>
