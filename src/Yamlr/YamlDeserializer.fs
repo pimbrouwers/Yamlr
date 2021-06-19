@@ -8,13 +8,46 @@ open Constants
 type internal YamlDeserializer (rd : StreamReader) =
     let whitespace = (char)32
 
-    let getInlineContent (sep : char array) (line : string) : string array = 
+    let getInlineTokens (sep : char array) (line : string) : string array = 
         if line.Length < 2 then [||]
         else 
             // strip enclosing chars (i.e., '[]' or '{}')
             line.Substring(1, line.Length - 2).Trim().Split(sep)
+            
+    let rec parseValue () =         
+        match readLine () with
+        | false, _   -> YamlNull
+        | true, line -> 
+            match line.[0] with
+            | InlineListStartChar -> 
+                // split line into string array and parse as scalars
+                getInlineTokens [|','|] line
+                |> Array.map parseScalar
+                |> YamlList 
 
-    let parseScalar (str : string) : YamlValue =
+            | InlineMapStartChar -> 
+                // split line into string array and parse as key/value pairs
+                getInlineTokens [|','|] line
+                |> Array.map parsePairing
+                |> YamlMap
+            
+            | ListChar -> parseArray line
+                
+            | _ -> parseScalar line
+
+    and readLine () : bool * string  =                        
+        // continue reading until we find a suitable line (i.e., non-empty and non-comment)
+        if not(rd.EndOfStream) then 
+            let line = (rd.ReadLine ()).Trim()
+            
+            if line = NullChar || line.[0] = CommentChar then 
+                readLine ()
+            else 
+                true, line
+        else 
+            false, NullChar
+
+    and parseScalar (str : string) : YamlValue =
         let str = str.Trim ()
         let c = if str.Length = 0 then Char.MinValue else str.[0]
 
@@ -55,7 +88,7 @@ type internal YamlDeserializer (rd : StreamReader) =
         | QuoteChar | DoubleQuoteChar -> YamlString (parseString str)
         | _                           -> YamlString str
 
-    let parsePairing (str : string) : string * YamlValue =        
+    and parsePairing (str : string) : string * YamlValue =        
         let str = str.Trim ()
         let c = if str.Length = 0 then Char.MinValue else str.[0]
         
@@ -90,40 +123,21 @@ type internal YamlDeserializer (rd : StreamReader) =
             
             key, value
 
-    let rec parseValue () =         
-        match readLine rd with
-        | false, _   -> YamlNull
-        | true, line -> 
-            match line.[0] with
-            | InlineListStartChar -> 
-                // split line into string array and parse as scalars
-                getInlineContent [|','|] line
-                |> Array.map parseScalar
-                |> YamlList 
+    and parseArray (line : string) =
+        let ary = ResizeArray<_>() 
+        ary.Add(parseScalar (line.Substring(1)))
 
-            | InlineMapStartChar -> 
-                // split line into string array and parse as key/value pairs
-                getInlineContent [|','|] line
-                |> Array.map parsePairing
-                |> YamlMap
-
-            | ListChar ->            
-                YamlList [||]
-
-            | _ -> parseScalar line
-
-
-    and readLine (rd : StreamReader) : bool * string  =                        
-        // continue reading until we find a suitable line (i.e., non-empty and non-comment)
-        if not(rd.EndOfStream) then 
-            let line = (rd.ReadLine ()).Trim()
-            
-            if line = NullChar || line.[0] = CommentChar then 
-                readLine rd
+        let parseAndContinue () =
+            let cond, line = readLine ()
+            if cond then 
+                ary.Add(parseScalar (line.Substring(1)))
+                true
             else 
-                true, line
-        else 
-            false, NullChar
+                false
+        
+        while parseAndContinue () do ignore None
+
+        YamlList (ary.ToArray ())
 
     member _.Deserialize () : YamlValue =        
         let yaml = parseValue ()

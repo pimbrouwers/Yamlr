@@ -74,11 +74,22 @@ let ``Inline map with double-quoted keys produces YamlMap`` () =
 
 [<Fact>]
 let ``Multiline list produces YamlList`` () =
-    "- 'test
+    "- 'test'
 - 1.0
 - false"
     |> Yaml.deserialize
     |> should equal (YamlList [| YamlString "test"; YamlNumber 1.0M; YamlBool false |])
+
+[<Fact>]
+let ``Multiline nested list produces YamlList`` () =
+    "- 'test'
+- 1.0
+-
+    - 'serializer'
+    - 'f#'
+- false"
+    |> Yaml.deserialize
+    |> should equal (YamlList [| YamlString "test"; YamlNumber 1.0M; YamlList [| YamlString "serializer"; YamlString "f#" |]; YamlBool false |])
 
 [<Fact>]
 let ``Multiline mapping produces YamlMap`` () =    
