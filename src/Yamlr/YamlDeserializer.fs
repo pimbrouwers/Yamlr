@@ -64,7 +64,7 @@ type internal YamlDeserializer (rd : StreamReader) =
             | "false" | "False" | "FALSE" 
             | "no" | "No" | "NO"
             | "off" | "Off" | "OFF"
-            | "N" | "N" -> true
+            | "n" | "N" -> true
             | _ -> false
 
         let parseNum (s : string) = 

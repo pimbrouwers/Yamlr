@@ -8,25 +8,44 @@ open FsUnit.Xunit
 let ``Scalar Empty string produces YamlNull`` () =
     "" |> Yaml.deserialize |> should equal YamlNull
 
-[<Fact>]
-let ``Scalar decimal string produces YamlNumber`` () =
-    "1.0" |> Yaml.deserialize |> should equal (YamlNumber 1.0M)
+[<Theory>]
+[<InlineData("1.0", 1.0)>]
+[<InlineData("99", 99)>]
+let ``Scalar decimal string produces YamlNumber`` (str : string, value : decimal) =
+    str |> Yaml.deserialize |> should equal (YamlNumber value)
 
-[<Fact>]
-let ``Scalar bool string produces YamlBool`` () =
-    "false" |> Yaml.deserialize |> should equal (YamlBool false)
+[<Theory>]
+[<InlineData("false", false)>]
+[<InlineData("False", false)>]
+[<InlineData("FALSE", false)>]
+[<InlineData("no", false)>]
+[<InlineData("No", false)>]
+[<InlineData("NO", false)>]
+[<InlineData("off", false)>]
+[<InlineData("Off", false)>]
+[<InlineData("OFF", false)>]
+[<InlineData("n", false)>]
+[<InlineData("N", false)>]
+[<InlineData("true", true)>]
+[<InlineData("True", true)>]
+[<InlineData("TRUE", true)>]
+[<InlineData("yes", true)>]
+[<InlineData("Yes", true)>]
+[<InlineData("YES", true)>]
+[<InlineData("on", true)>]
+[<InlineData("On", true)>]
+[<InlineData("ON", true)>]
+[<InlineData("y", true)>]
+[<InlineData("Y", true)>]
+let ``Scalar bool string produces YamlBool`` (str : string, value : bool) =
+    str |> Yaml.deserialize |> should equal (YamlBool value)
 
-[<Fact>]
-let ``Scalar string literal produces YamlString`` () =
-    "yamlr" |> Yaml.deserialize |> should equal (YamlString "yamlr")
-
-[<Fact>]
-let ``Scalar single-quoted string literal produces YamlString`` () =
-    "'yamlr'" |> Yaml.deserialize |> should equal (YamlString "yamlr")
-
-[<Fact>]
-let ``Scalar double-quoted string literal produces YamlString`` () =
-    "\"yamlr\"" |> Yaml.deserialize |> should equal (YamlString "yamlr")
+[<Theory>]
+[<InlineData("yamlr", "yamlr")>]
+[<InlineData("'yamlr'", "yamlr")>]
+[<InlineData("\"yamlr\"", "yamlr")>]
+let ``Scalar string literal produces YamlString`` (str : string, value : string) =
+    str |> Yaml.deserialize |> should equal (YamlString value)
 
 [<Fact>]
 let ``Inline list produces YamlList`` () =
@@ -134,3 +153,4 @@ api:
             |]
         |]
     |])
+
