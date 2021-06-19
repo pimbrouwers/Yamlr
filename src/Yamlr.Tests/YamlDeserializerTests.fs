@@ -9,12 +9,6 @@ let ``Scalar Empty string produces YamlNull`` () =
     "" |> Yaml.deserialize |> should equal YamlNull
 
 [<Theory>]
-[<InlineData("1.0", 1.0)>]
-[<InlineData("99", 99)>]
-let ``Scalar decimal string produces YamlNumber`` (str : string, value : decimal) =
-    str |> Yaml.deserialize |> should equal (YamlNumber value)
-
-[<Theory>]
 [<InlineData("false", false)>]
 [<InlineData("False", false)>]
 [<InlineData("FALSE", false)>]
@@ -47,6 +41,18 @@ let ``Scalar bool string produces YamlBool`` (str : string, value : bool) =
 let ``Scalar string literal produces YamlString`` (str : string, value : string) =
     str |> Yaml.deserialize |> should equal (YamlString value)
 
+[<Theory>]
+[<InlineData("1.0", 1.0)>]
+[<InlineData("99", 99)>]
+let ``Scalar decimal string produces YamlNumber`` (str : string, value : decimal) =
+    str |> Yaml.deserialize |> should equal (YamlNumber value)
+
+[<Theory>]
+[<InlineData("230000000000000000000000000000000.000000", 2.3E+32)>]
+[<InlineData("230000000000000000000000000000000.000000", 2.3e+32)>]
+let ``Scalar float string produces YamlFloat`` (str : string, value : float) =
+    str |> Yaml.deserialize |> should equal (YamlFloat value)
+
 [<Fact>]
 let ``Inline list produces YamlList`` () =
     "['yamlr', 1.0, false, ]" 
@@ -60,7 +66,7 @@ let ``Inline list produces YamlList`` () =
 
 [<Fact>]
 let ``Inline map produces YamlMap`` () =
-    "{name: \"yamlr\", version: 1.0, beta: false, issues:}"
+    "{name: yamlr, version: 1.0, beta: false, issues:}"
     |> Yaml.deserialize
     |> should equal (YamlMap [|
         "name", YamlString "yamlr"
@@ -95,9 +101,20 @@ let ``Inline map with double-quoted keys produces YamlMap`` () =
 let ``Multiline list produces YamlList`` () =
     "- 'test'
 - 1.0
-- false"
+- false
+- {name: yamlr, version: 1.0, beta: false, issues:}"
     |> Yaml.deserialize
-    |> should equal (YamlList [| YamlString "test"; YamlNumber 1.0M; YamlBool false |])
+    |> should equal (YamlList [| 
+        YamlString "test"
+        YamlNumber 1.0M
+        YamlBool false
+        YamlMap [|
+            "name", YamlString "yamlr"
+            "version", YamlNumber 1.0M
+            "beta", YamlBool false
+            "issues", YamlNull 
+        |] 
+    |])
 
 [<Fact>]
 let ``Multiline nested list produces YamlList`` () =
@@ -108,7 +125,15 @@ let ``Multiline nested list produces YamlList`` () =
     - 'f#'
 - false"
     |> Yaml.deserialize
-    |> should equal (YamlList [| YamlString "test"; YamlNumber 1.0M; YamlList [| YamlString "serializer"; YamlString "f#" |]; YamlBool false |])
+    |> should equal (YamlList [| 
+        YamlString "test"
+        YamlNumber 1.0M
+        YamlList [| 
+            YamlString "serializer"
+            YamlString "f#" 
+        |]
+        YamlBool false 
+    |])
 
 [<Fact>]
 let ``Multiline mapping produces YamlMap`` () =    
