@@ -1,5 +1,7 @@
 ﻿namespace Yamlr
 
+open System
+
 /// Represents a YAML value. Large numbers that do not fit in the
 /// Decimal type are represented using the Float case, while
 /// smaller numbers are represented as decimals to avoid precision loss.
@@ -37,8 +39,7 @@ module internal Constants =
     [<Literal>]
     let InlineMapStartChar = '{'
 
-    [<Literal>]
-    let NullChar = ""
+    let NullChar = String.Empty
 
     [<Literal>]
     let QuoteChar = '''

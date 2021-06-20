@@ -12,10 +12,10 @@ let ``YamlNull serializes to empty string`` () =
 let ``YamlBool serializes to boolean string`` () =    
     YamlBool false |> Yaml.serialize |> should equal "false"
 
-[<Fact>]
-let ``YamlString serializes to provided string quoted`` () =    
-    let str = "yamlr"
-    let quotedStr = sprintf "'%s'" str
+[<Theory>]
+[<InlineData("yamlr", "\"yamlr\"")>]
+[<InlineData("a string with \"double quotes\"", "\"a string with \"double quotes\"\"")>]
+let ``YamlString serializes to provided string quoted`` (str : string, quotedStr : string) =        
     str |> YamlString |> Yaml.serialize |> should equal quotedStr
 
 [<Fact>]
@@ -38,10 +38,41 @@ let ``YamlFloat serializes to provided number for float`` () =
 
 [<Fact>]
 let ``YamlList serializes to list of serialized Yaml`` () =    
-    let expected = "- 'test'
+    let expected = "- \"test\"
 - 1.0
 - false"
     YamlList [| YamlString "test"; YamlNumber 1.0M; YamlBool false |]
+    |> Yaml.serialize
+    |> should equal expected
+
+[<Fact>]
+let ``YamlList serializes to nested list of serialized Yaml`` () =
+    let expected = "- \"test\"
+- 1.0
+- 
+    - \"serializer\"
+    - \"f#\"
+- false
+- 
+    name: \"yamlr\"
+    version: 1.0
+    beta: false
+    issues: "   
+    YamlList [| 
+        YamlString "test"
+        YamlNumber 1.0M
+        YamlList [| 
+            YamlString "serializer"
+            YamlString "f#" 
+        |]
+        YamlBool false
+        YamlMap [|
+            "name", YamlString "yamlr"
+            "version", YamlNumber 1.0M
+            "beta", YamlBool false
+            "issues", YamlNull 
+        |] 
+    |]
     |> Yaml.serialize
     |> should equal expected
 

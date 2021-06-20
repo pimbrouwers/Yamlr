@@ -3,6 +3,7 @@
 open System
 open System.IO
 open Constants
+open System.Web
 
 type internal YamlSerializer (yaml : YamlValue) =
     /// Serializes the YamlValue to the specified System.IO.TextWriter.
@@ -19,9 +20,9 @@ type internal YamlSerializer (yaml : YamlValue) =
             | YamlNumber n -> w.Write n
             | YamlFloat f  -> w.Write f
             | YamlString s -> 
-                w.Write QuoteChar
+                w.Write DoubleQuoteChar
                 w.Write s
-                w.Write QuoteChar
+                w.Write DoubleQuoteChar
 
             | YamlList elements -> 
                 for i = 0 to elements.Length - 1 do
@@ -32,7 +33,11 @@ type internal YamlSerializer (yaml : YamlValue) =
                     w.Write ListChar
                     w.Write TabChar
 
-                    serializeYaml indent elements.[i]
+                    let element = elements.[i]
+                    match element with
+                    | YamlList _ 
+                    | YamlMap _  -> serializeYaml (increaseIndent indent) element
+                    | _          -> serializeYaml indent element
 
             | YamlMap scalars ->
                 for i = 0 to scalars.Length - 1 do                    

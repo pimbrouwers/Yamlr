@@ -123,7 +123,8 @@ let ``Multiline nested list produces YamlList`` () =
 -
     - 'serializer'
     - 'f#'
-- false"
+- false
+- {name: yamlr, version: 1.0, beta: false, issues:}"
     |> Yaml.deserialize
     |> should equal (YamlList [| 
         YamlString "test"
@@ -132,7 +133,13 @@ let ``Multiline nested list produces YamlList`` () =
             YamlString "serializer"
             YamlString "f#" 
         |]
-        YamlBool false 
+        YamlBool false
+        YamlMap [|
+            "name", YamlString "yamlr"
+            "version", YamlNumber 1.0M
+            "beta", YamlBool false
+            "issues", YamlNull 
+        |] 
     |])
 
 [<Fact>]
