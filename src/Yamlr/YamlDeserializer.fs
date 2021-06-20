@@ -19,21 +19,8 @@ type internal YamlDeserializer (rd : StreamReader) =
         | false, _   -> YamlNull
         | true, line -> 
             match line.[0] with
-            | InlineListStartChar -> 
-                // split line into string array and parse as scalars
-                getInlineTokens [|','|] line
-                |> Array.map parseScalar
-                |> YamlList 
-
-            | InlineMapStartChar -> 
-                // split line into string array and parse as key/value pairs
-                getInlineTokens [|','|] line
-                |> Array.map parsePairing
-                |> YamlMap
-            
-            | ListChar -> parseArray line
-                
-            | _ -> parseScalar line
+            | ListChar -> parseArray line                
+            | _        -> parseScalar line
 
     and readLine () : bool * string  =                        
         // continue reading until we find a suitable line (i.e., non-empty and non-comment)
@@ -75,17 +62,29 @@ type internal YamlDeserializer (rd : StreamReader) =
                 | Some f -> YamlFloat f
                 | None   -> YamlString s // can't parse the numeric so return as YamlString
 
-        let parseString (s : string) =
+        let parseQuotedString (s : string) =
             if s.Length < 2 then NullChar
             else s.Substring(1, s.Length - 2)
 
         match c with
+        | InlineListStartChar ->      
+            // split line into string array and parse as scalars
+            getInlineTokens [|','|] str 
+            |> Array.map parseScalar
+            |> YamlList
+
+        | InlineMapStartChar -> 
+            // split line into string array and parse as key/value pairs
+            getInlineTokens [|','|] str
+            |> Array.map parsePairing
+            |> YamlMap
+
         | Char.MinValue               -> YamlNull
         | '-'                         -> parseNum str
         | c when Char.IsDigit(c)      -> parseNum str
         | _ when isTrueBool str       -> YamlBool true
         | _ when isFalseBool str      -> YamlBool false        
-        | QuoteChar | DoubleQuoteChar -> YamlString (parseString str)
+        | QuoteChar | DoubleQuoteChar -> YamlString (parseQuotedString str)
         | _                           -> YamlString str
 
     and parsePairing (str : string) : string * YamlValue =        
