@@ -78,9 +78,9 @@ let ``YamlList serializes to nested list of serialized Yaml`` () =
 
 [<Fact>]
 let ``YamlMapping serializes to nested serialized Yaml scalars`` () =    
-    let expected = "name: 'yamlr'
+    let expected = "name: \"yamlr\"
 version: 1.0
-kind: 'library'
+kind: \"library\"
 beta: false
 versionHistory: 
     - 0.1
@@ -88,13 +88,13 @@ versionHistory:
     - 0.3
     - 1.0
 api: 
-    serialize: 'converts yaml to string'
-    parse: 'convert string to yaml'
+    serialize: \"converts yaml to string\"
+    parse: \"convert string to yaml\"
     metadata: 
-        license: 'apache'
+        license: \"apache\"
         keywords: 
-            - 'serializer'
-            - 'f#'"
+            - \"serializer\"
+            - \"f#\""
     YamlMap [|
         "name", YamlString "yamlr"
         "version", YamlNumber 1.0M

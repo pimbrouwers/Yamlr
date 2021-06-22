@@ -4,6 +4,9 @@ open Xunit
 open Yamlr
 open FsUnit.Xunit
 
+// ----------
+// Scalars
+// ----------
 [<Fact>]
 let ``Scalar Empty string produces YamlNull`` () =
     "" |> Yaml.deserialize |> should equal YamlNull
@@ -53,6 +56,9 @@ let ``Scalar decimal string produces YamlNumber`` (str : string, value : decimal
 let ``Scalar float string produces YamlFloat`` (str : string, value : float) =
     str |> Yaml.deserialize |> should equal (YamlFloat value)
 
+// ----------
+// Inline
+// ----------
 [<Fact>]
 let ``Inline list produces YamlList`` () =
     "['yamlr', 1.0, false, ]" 
@@ -97,6 +103,9 @@ let ``Inline map with double-quoted keys produces YamlMap`` () =
         "issues", YamlNull
     |])
 
+// ----------
+// Sequences
+// ----------
 [<Fact>]
 let ``Multiline list produces YamlList`` () =
     "- 'test'
@@ -142,8 +151,17 @@ let ``Multiline nested list produces YamlList`` () =
         |] 
     |])
 
+// ----------
+// Mappings
+// ----------
 [<Fact>]
-let ``Multiline mapping produces YamlMap`` () =    
+let ``Single key/value pair produces YamlMap`` () =
+    let str = "name: yamlr"
+    let yaml = YamlMap [| "name", YamlString "yamlr" |]
+    str |> Yaml.deserialize |> should equal yaml
+
+[<Fact>]
+let ``Multiple key/value pairs produces YamlMap`` () =    
     "name: 'yamlr'
 version: 1.0
 kind: 'library'

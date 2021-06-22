@@ -38,7 +38,7 @@ type internal YamlDeserializer (rd : StreamReader) =
         let str = str.Trim ()
         let c = if str.Length = 0 then Char.MinValue else str.[0]
 
-        let isTrueBool (s : string) = 
+        let isTrueBool (s : string) =             
             match s with 
             | "true" | "True" | "TRUE" 
             | "yes" | "Yes" | "YES"
@@ -102,23 +102,23 @@ type internal YamlDeserializer (rd : StreamReader) =
             elif i = strLen then -1
             else locateQuotedKeyTerminator delimiter (i + 1) str
             
-        let isDelimited, colonIndex =             
+        let isDelimited, terminatorIndex =             
             match c with
             | QuoteChar       -> true, locateQuotedKeyTerminator ''' 0 str
             | DoubleQuoteChar -> true, locateQuotedKeyTerminator '"' 0 str
             | ComplexKeyChar  -> false, -1                
             | _               -> false, str.IndexOf(':')
 
-        if colonIndex = -1 then 
+        if terminatorIndex = -1 then 
             // can't find ':' separator so return as a null value pair with string as key
             str, YamlNull
         else 
             // trim leading and trailing delimiter for delimited (i.e. single- and double-quote keys)
             let startIndex = if isDelimited then 1 else 0
-            let endIndex = if isDelimited then colonIndex - 2 else colonIndex
+            let endIndex = if isDelimited then terminatorIndex - 2 else terminatorIndex
             let key = str.Substring(startIndex, endIndex)
     
-            let value = parseScalar (str.Substring(colonIndex + 1))
+            let value = parseScalar (str.Substring(terminatorIndex + 1))
             
             key, value
 
