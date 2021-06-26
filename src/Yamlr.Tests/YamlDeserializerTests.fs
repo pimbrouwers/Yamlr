@@ -154,10 +154,14 @@ let ``Multiline nested list produces YamlList`` () =
 // ----------
 // Mappings
 // ----------
-[<Fact>]
-let ``Single key/value pair produces YamlMap`` () =
-    let str = "name: yamlr"
-    let yaml = YamlMap [| "name", YamlString "yamlr" |]
+[<Theory>]
+[<InlineData("name: yamlr", "name", "yamlr")>]
+[<InlineData("name: 'yamlr'", "name", "yamlr")>]
+[<InlineData("'name': yamlr", "name", "yamlr")>]
+[<InlineData("'name': 'yamlr'", "name", "yamlr")>]
+[<InlineData("\"name\": \"yamlr\"", "name", "yamlr")>]
+let ``Single key/value pair produces YamlMap`` (str : string, key : string, value : string) =    
+    let yaml = YamlMap [| key, YamlString value |]
     str |> Yaml.deserialize |> should equal yaml
 
 [<Fact>]

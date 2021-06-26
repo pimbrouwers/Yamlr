@@ -13,14 +13,45 @@ type internal YamlDeserializer (rd : StreamReader) =
         else 
             // strip enclosing chars (i.e., '[]' or '{}')
             line.Substring(1, line.Length - 2).Trim().Split(sep)
-            
+
+    let locateKeyTerminator (str : string) : bool * int =
+        // walk string until we fine the ':' key/value separator
+        let rec locateQuotedKeyTerminator (delimiter : char) (i: int) (str : string) =
+            let strLen = str.Length
+            let twoBack = if i > 1 then str.[i-2] else Char.MinValue
+            let oneBack = if i > 0 then str.[i-1] else Char.MinValue
+            let curr = if i < strLen - 1 then str.[i] else whitespace
+        
+            if twoBack = delimiter && oneBack = ':' && Char.IsWhiteSpace curr then i - 1
+            elif i = strLen then -1
+            else locateQuotedKeyTerminator delimiter (i + 1) str
+
+        let c = if str.Length = 0 then Char.MinValue else str.[0]
+        
+        match c with
+        | QuoteChar       -> true, locateQuotedKeyTerminator ''' 0 str
+        | DoubleQuoteChar -> true, locateQuotedKeyTerminator '"' 0 str
+        | ComplexKeyChar  -> false, -1                
+        | _               -> false, str.IndexOf(':')
+                    
     let rec parseValue () =         
         match readLine () with
-        | false, _   -> YamlNull
+        | false, _ -> 
+            YamlNull
+
         | true, line -> 
             match line.[0] with
-            | ListChar -> parseArray line                
-            | _        -> parseScalar line
+            | ListChar -> 
+                parseArray line
+
+            | InlineListStartChar | InlineMapStartChar -> 
+                parseScalar line
+
+            | _ -> 
+                let _, keyTerminatedIndex = locateKeyTerminator line
+
+                if keyTerminatedIndex = -1 then parseScalar line
+                else parsePairings line
 
     and readLine () : bool * string  =                        
         // continue reading until we find a suitable line (i.e., non-empty and non-comment)
@@ -89,25 +120,8 @@ type internal YamlDeserializer (rd : StreamReader) =
 
     and parsePairing (str : string) : string * YamlValue =        
         let str = str.Trim ()
-        let c = if str.Length = 0 then Char.MinValue else str.[0]
         
-        // walk string until we fine the ':' key/value separator
-        let rec locateQuotedKeyTerminator (delimiter : char) (i: int) (str : string) =
-            let strLen = str.Length
-            let twoBack = if i > 1 then str.[i-2] else Char.MinValue
-            let oneBack = if i > 0 then str.[i-1] else Char.MinValue
-            let curr = if i < strLen - 1 then str.[i] else whitespace
-            
-            if twoBack = delimiter && oneBack = ':' && Char.IsWhiteSpace curr then i - 1
-            elif i = strLen then -1
-            else locateQuotedKeyTerminator delimiter (i + 1) str
-            
-        let isDelimited, terminatorIndex =             
-            match c with
-            | QuoteChar       -> true, locateQuotedKeyTerminator ''' 0 str
-            | DoubleQuoteChar -> true, locateQuotedKeyTerminator '"' 0 str
-            | ComplexKeyChar  -> false, -1                
-            | _               -> false, str.IndexOf(':')
+        let isDelimited, terminatorIndex = locateKeyTerminator str                     
 
         if terminatorIndex = -1 then 
             // can't find ':' separator so return as a null value pair with string as key
@@ -124,12 +138,12 @@ type internal YamlDeserializer (rd : StreamReader) =
 
     and parseArray (line : string) =
         let ary = ResizeArray<_>() 
-        ary.Add(parseScalar (line.Substring(1)))
+        ary.Add(parseScalar (line.Substring(2)))
 
         let parseAndContinue () =
             let cond, line = readLine ()
             if cond then 
-                ary.Add(parseScalar (line.Substring(1)))
+                ary.Add(parseScalar (line.Substring(2)))
                 true
             else 
                 false
@@ -137,6 +151,22 @@ type internal YamlDeserializer (rd : StreamReader) =
         while parseAndContinue () do ignore None
 
         YamlList (ary.ToArray ())
+
+    and parsePairings (line : string) =
+        let ary = ResizeArray<_>() 
+        ary.Add(parsePairing (line))
+
+        let parseAndContinue () =
+            let cond, line = readLine ()
+            if cond then 
+                ary.Add(parsePairing (line))
+                true
+            else 
+                false
+        
+        while parseAndContinue () do ignore None
+
+        YamlMap (ary.ToArray ())
 
     member _.Deserialize () : YamlValue =        
         let yaml = parseValue ()
